@@ -7,38 +7,38 @@ import (
 )
 
 var paramPrimeNumbersAmount int
-var paramJobsAmount int
+var paramParallelJobs int
 var paramLogDebug bool
 
 func main() {
-	flag.IntVar(&paramPrimeNumbersAmount, "numbers", 100, "amount of prime numbers to generate  (approximated)")
-	flag.IntVar(&paramJobsAmount, "jobs", 1, "number of jobs to parallel process")
+	flag.IntVar(&paramPrimeNumbersAmount, "primes", 100, "amount of prime numbers to generate (approximated)")
+	flag.IntVar(&paramParallelJobs, "jobs", 1, "number of parallel jobs to generate prime numbers")
 	flag.BoolVar(&paramLogDebug, "debug", false, "show debug log (slow)")
 	flag.Parse()
 
-	err := ValidatePositiveNumber(paramPrimeNumbersAmount)
+	err := ValidateGreaterThanZero(paramPrimeNumbersAmount)
 	if err != nil {
-		LogError.Fatalf("Error validating number: %v", err)
+		LogError.Fatalf("Error validating prime numbers amount: %v", err)
 	}
 
-	err = ValidatePositiveNumber(paramJobsAmount)
+	err = ValidateGreaterThanZero(paramParallelJobs)
 	if err != nil {
-		LogError.Fatalf("Error validating jobs: %v", err)
+		LogError.Fatalf("Error validating parallel jobs: %v", err)
 	}
 
 	if paramLogDebug {
 		LogDebug.SetOutput(os.Stdout)
 	}
 
-	executePrimeNumbers(paramPrimeNumbersAmount, paramJobsAmount)
+	generatePrimeNumbers(paramPrimeNumbersAmount, paramParallelJobs)
 }
 
-func executePrimeNumbers(numbers, jobsAmount int) {
-	LogInfo.Printf("starting generating first %d prime numbers using %d jobs\n", numbers, jobsAmount)
+func generatePrimeNumbers(numbers, parallelJobs int) {
+	LogInfo.Printf("starting generating first %d prime numbers using %d jobs\n", numbers, parallelJobs)
 	start := time.Now()
 
-	pc := PrimeNumberCalculator{}
-	primeNumbers, errs := pc.GeneratePrimeNumbers(numbers, jobsAmount)
+	pg := PrimeNumberGenerator{}
+	primeNumbers, errs := pg.GeneratePrimeNumbers(numbers, parallelJobs)
 	for err := range errs {
 		LogError.Printf("Errors calculating prime numbers: %v", err)
 	}
@@ -46,7 +46,7 @@ func executePrimeNumbers(numbers, jobsAmount int) {
 	printPrimeNumbers(primeNumbers)
 
 	elapsed := time.Since(start)
-	LogInfo.Printf("took %s to generate %d numbers using %d jobs", elapsed, len(primeNumbers), jobsAmount)
+	LogInfo.Printf("took %s to test %d numbers and generate %d prime numbers using %d jobs", elapsed, pg.lastNumberProcessed, len(primeNumbers), parallelJobs)
 }
 
 func printPrimeNumbers(primeNumbers []int) {

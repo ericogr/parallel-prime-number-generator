@@ -18,7 +18,7 @@ make build
 You can use included [Makefile] to understand how it works:
 
 ```sh
-make run NUMBERS=100 JOBS=3
+make run PRIMES=100 JOBS=3
 ```
 
 ![demo](docs/demo.gif?raw=true "Demo")

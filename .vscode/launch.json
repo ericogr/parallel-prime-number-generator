@@ -10,7 +10,7 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}",
-            "args": ["--numbers=50", "--jobs=2", "--debug=false"]
+            "args": ["--primes=50", "--jobs=2", "--debug=false"]
         }
     ]
 }

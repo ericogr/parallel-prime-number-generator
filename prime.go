@@ -5,9 +5,10 @@ import (
 	"sync"
 )
 
-type PrimeNumberCalculator struct {
-	primeNumbersList []int
-	errorList        []error
+type PrimeNumberGenerator struct {
+	primeNumbersList    []int
+	errorList           []error
+	lastNumberProcessed int
 }
 
 type PrimeNumberResult struct {
@@ -16,7 +17,7 @@ type PrimeNumberResult struct {
 	Error   error
 }
 
-func (p *PrimeNumberCalculator) IsPrimeNumber(number int) (bool, error) {
+func (p *PrimeNumberGenerator) IsPrimeNumber(number int) (bool, error) {
 	if number <= 0 {
 		return false, fmt.Errorf("invalid number %d", number)
 	}
@@ -34,19 +35,19 @@ func (p *PrimeNumberCalculator) IsPrimeNumber(number int) (bool, error) {
 	return true, nil
 }
 
-func (p *PrimeNumberCalculator) createJobs(primeNumbersAmount int, jobChannel chan<- int, resultChannel <-chan PrimeNumberResult) {
-	number := 2
+func (p *PrimeNumberGenerator) createJobs(primeNumbersAmount int, jobChannel chan<- int, resultChannel <-chan PrimeNumberResult) {
+	p.lastNumberProcessed = 2
 	for len(p.primeNumbersList) < primeNumbersAmount {
-		LogDebug.Printf("creating job %d (%d/%d)\n", number, len(p.primeNumbersList), primeNumbersAmount)
-		jobChannel <- number
-		LogDebug.Printf("job %d created\n", number)
-		number++
+		LogDebug.Printf("creating job %d (%d/%d)\n", p.lastNumberProcessed, len(p.primeNumbersList), primeNumbersAmount)
+		jobChannel <- p.lastNumberProcessed
+		LogDebug.Printf("job %d created\n", p.lastNumberProcessed)
+		p.lastNumberProcessed++
 	}
 	LogDebug.Printf("closing job channel\n")
 	close(jobChannel)
 }
 
-func (p *PrimeNumberCalculator) processResults(jobChannel <-chan int, resultChannel <-chan PrimeNumberResult) {
+func (p *PrimeNumberGenerator) processResults(jobChannel <-chan int, resultChannel <-chan PrimeNumberResult) {
 	for result := range resultChannel {
 		LogDebug.Printf("processing result %d\n", result.Number)
 
@@ -61,7 +62,7 @@ func (p *PrimeNumberCalculator) processResults(jobChannel <-chan int, resultChan
 	}
 }
 
-func (p *PrimeNumberCalculator) processJob(wg *sync.WaitGroup, jobChannel <-chan int, resultChannel chan<- PrimeNumberResult) {
+func (p *PrimeNumberGenerator) processJob(wg *sync.WaitGroup, jobChannel <-chan int, resultChannel chan<- PrimeNumberResult) {
 	for number := range jobChannel {
 		LogDebug.Printf("processing job %d\n", number)
 		isPrimeNumber, err := p.IsPrimeNumber(number)
@@ -76,7 +77,7 @@ func (p *PrimeNumberCalculator) processJob(wg *sync.WaitGroup, jobChannel <-chan
 	wg.Done()
 }
 
-func (p *PrimeNumberCalculator) createJobPool(jobsAmount int, jobChannel <-chan int, resultChannel chan<- PrimeNumberResult) {
+func (p *PrimeNumberGenerator) createJobPool(jobsAmount int, jobChannel <-chan int, resultChannel chan<- PrimeNumberResult) {
 	var wg sync.WaitGroup
 	wg.Add(jobsAmount)
 	for i := 0; i < jobsAmount; i++ {
@@ -88,16 +89,16 @@ func (p *PrimeNumberCalculator) createJobPool(jobsAmount int, jobChannel <-chan 
 	close(resultChannel)
 }
 
-func (p *PrimeNumberCalculator) GeneratePrimeNumbers(primeNumbersAmount, jobsAmount int) ([]int, []error) {
+func (p *PrimeNumberGenerator) GeneratePrimeNumbers(primeNumbersAmount, parallelJobs int) ([]int, []error) {
 	p.primeNumbersList = nil
 	p.errorList = nil
 
-	jobChannel := make(chan int, jobsAmount)
-	resultChannel := make(chan PrimeNumberResult, jobsAmount)
+	var jobChannel = make(chan int)                  //there is no real gain using buffered channel here
+	var resultChannel = make(chan PrimeNumberResult) //there is no real gain using buffered channel here
 
 	go p.createJobs(primeNumbersAmount, jobChannel, resultChannel)
 	go p.processResults(jobChannel, resultChannel)
-	p.createJobPool(jobsAmount, jobChannel, resultChannel)
+	p.createJobPool(parallelJobs, jobChannel, resultChannel)
 
 	return p.primeNumbersList, p.errorList
 }

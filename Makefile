@@ -1,16 +1,15 @@
 BIN_NAME=prime-gen
-NUMBERS=5000
+PRIMES=5000
 JOBS=2
 DEBUG=false
 
 all: clean build
 
 build:
-	go build -o bin/$(BIN_NAME) .
+	@go build -o bin/$(BIN_NAME) .
 
 clean:
-	rm bin/*
-	rmdir bin
+	@rm -rf bin
 
-run:
-	bin/$(BIN_NAME) --numbers=$(NUMBERS) --jobs=$(JOBS) --debug=$(DEBUG)
+run: clean build
+	@bin/$(BIN_NAME) --primes=$(PRIMES) --jobs=$(JOBS) --debug=$(DEBUG)
